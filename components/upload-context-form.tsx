@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Briefcase,
@@ -43,6 +43,17 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
     specificJobDescription: "",
     additionalContext: "",
   })
+
+  const contentRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      const offset = 80 // px from the top, adjust as needed
+      const top = contentRef.current.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({ top, behavior: "smooth" })
+    }
+  }, [step])
+
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -92,7 +103,7 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
         </CardDescription>
         <Progress value={progress} className="h-2 mt-4" />
       </CardHeader>
-      <CardContent>
+      <CardContent ref={contentRef}>
         {step === 1 && (
           <div className="space-y-6">
             <div className="space-y-4">
