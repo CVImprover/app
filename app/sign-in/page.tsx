@@ -1,37 +1,35 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
 import Link from "next/link"
-import { FileUp, ArrowRight, LockKeyhole } from "lucide-react"
+import { FileUp, ArrowRight, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { useAuth } from "@/lib/auth-context"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import Header from "@/components/header"
 
 export default function SignInPage() {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
+  const { login, isLoading, error } = useAuth()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await login(username, password)
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2">
-              <FileUp className="h-6 w-6 text-teal-500" />
-              <span className="text-xl font-bold">ResumeRise</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm" className="bg-teal-500 hover:bg-teal-600">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Use the Header component with no navigation */}
+      <Header showNav={false} showGetStarted={false} />
+
 
       <main className="flex-1 relative overflow-hidden">
         {/* Background decorative elements */}
@@ -49,10 +47,23 @@ export default function SignInPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="john.doe@example.com" />
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="johndoe"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -62,11 +73,21 @@ export default function SignInPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <Input id="password" type="password" />
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
                 <label
                   htmlFor="remember"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -75,9 +96,18 @@ export default function SignInPage() {
                 </label>
               </div>
 
-              <Button className="w-full bg-teal-500 hover:bg-teal-600 group">
-                Sign In
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600 group" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </Button>
 
               <div className="relative">
@@ -90,7 +120,7 @@ export default function SignInPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" type="button">
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -111,7 +141,7 @@ export default function SignInPage() {
                   </svg>
                   Google
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" type="button">
                   <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
                   </svg>
@@ -125,17 +155,8 @@ export default function SignInPage() {
                   Sign up
                 </Link>
               </div>
-            </div>
+            </form>
 
-            <div className="absolute -bottom-6 -left-6 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 flex items-center gap-3 border border-teal-100 dark:border-slate-700">
-              <div className="bg-teal-500 rounded-full p-2 text-white">
-                <LockKeyhole className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-medium">Secure Login</div>
-                <div className="text-xs text-muted-foreground">Your data is protected</div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
@@ -163,3 +184,4 @@ export default function SignInPage() {
     </div>
   )
 }
+

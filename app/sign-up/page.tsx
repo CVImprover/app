@@ -1,37 +1,94 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { FileUp, ArrowRight, Check } from "lucide-react"
+import { FileUp, ArrowRight, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useCsrf } from "@/components/csrf-provider"
+import { authApi } from "@/lib/api"
+import { useRouter } from "next/navigation"
+import Header from "@/components/header"
+
 
 export default function SignUpPage() {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | Record<string, string[]> | null>(null)
+
+  const { loading: csrfLoading } = useCsrf()
+  const router = useRouter()
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    if (!agreedToTerms) {
+      setError("You must agree to the terms of service and privacy policy")
+      return
+    }
+
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      // Register the user using the authApi
+      await authApi.register(formData.username, formData.email, formData.password)
+
+      // Redirect to sign-in page after successful registration
+      router.push("/sign-in?registered=true")
+    } catch (err) {
+      console.error("Registration failed:", err)
+
+      // Log the error type for debugging
+      console.log("Error type:", typeof err)
+      console.log("Error is Error instance:", err instanceof Error)
+      console.log("Error keys:", err && typeof err === "object" ? Object.keys(err) : "Not an object")
+
+      // Handle different error types
+      if (err && typeof err === "object" && !(err instanceof Error)) {
+        setError(err as Record<string, string[]>)
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("Registration failed. Please try again.")
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Debug: Log the error state whenever it changes
+  useEffect(() => {
+    console.log("Current error state:", error)
+  }, [error])
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2">
-              <FileUp className="h-6 w-6 text-teal-500" />
-              <span className="text-xl font-bold">ResumeRise</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm" className="bg-teal-500 hover:bg-teal-600">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header showNav={false} showGetStarted={false} />
 
       <main className="flex-1 relative overflow-hidden">
         {/* Background decorative elements */}
@@ -49,35 +106,92 @@ export default function SignUpPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="first-name">First name</Label>
-                  <Input id="first-name" placeholder="John" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last-name">Last name</Label>
-                  <Input id="last-name" placeholder="Doe" />
-                </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {typeof error === "string" ? (
+                    error
+                  ) : (
+                    <ul className="list-disc pl-5 space-y-1">
+                      {Object.entries(error).map(([field, messages]) =>
+                        Array.isArray(messages) ? (
+                          messages.map((message, i) => (
+                            <li key={`${field}-${i}`}>
+                              <strong>{field === "password1" ? "Password" : field}:</strong> {message}
+                            </li>
+                          ))
+                        ) : (
+                          <li key={field}>
+                            <strong>{field === "password1" ? "Password" : field}:</strong> {String(messages)}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  placeholder="johndoe"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="john.doe@example.com" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="john.doe@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Password must be at least 8 characters and cannot be entirely numeric.
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm Password</Label>
-                <Input id="confirm-password" type="password" />
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="terms" />
+                <Checkbox
+                  id="terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                />
                 <label
                   htmlFor="terms"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -93,9 +207,22 @@ export default function SignUpPage() {
                 </label>
               </div>
 
-              <Button className="w-full bg-teal-500 hover:bg-teal-600 group">
-                Create Account
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <Button
+                type="submit"
+                className="w-full bg-teal-500 hover:bg-teal-600 group"
+                disabled={isLoading || csrfLoading}
+              >
+                {isLoading || csrfLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {csrfLoading ? "Loading..." : "Creating Account..."}
+                  </>
+                ) : (
+                  <>
+                    Create Account
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </Button>
 
               <div className="relative">
@@ -108,7 +235,7 @@ export default function SignUpPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" type="button">
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -129,7 +256,7 @@ export default function SignUpPage() {
                   </svg>
                   Google
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" type="button">
                   <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
                   </svg>
@@ -143,7 +270,7 @@ export default function SignUpPage() {
                   Sign in
                 </Link>
               </div>
-            </div>
+            </form>
 
             <div className="absolute -bottom-6 -right-6 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 flex items-center gap-3 border border-teal-100 dark:border-slate-700">
               <div className="bg-teal-500 rounded-full p-2 text-white">
