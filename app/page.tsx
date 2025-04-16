@@ -1,7 +1,8 @@
 import Link from "next/link"
 import Image from "next/image"
-import { FileUp, CheckCircle, BarChart, User, ArrowRight, ChevronRight, Star } from "lucide-react"
+import { CheckCircle, BarChart, ArrowRight, ChevronRight, Star, FileUp, Users, Award, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Header from "@/components/header"
 import UploadSection from "@/components/upload-section"
 import FeatureCard from "@/components/feature-card"
 import TestimonialCard from "@/components/testimonial-card"
@@ -9,42 +10,8 @@ import TestimonialCard from "@/components/testimonial-card"
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileUp className="h-6 w-6 text-teal-500" />
-            <span className="text-xl font-bold">ResumeRise</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium transition-colors hover:text-teal-500">
-              Home
-            </Link>
-            <Link href="#features" className="text-sm font-medium transition-colors hover:text-teal-500">
-              Features
-            </Link>
-            <Link href="#how-it-works" className="text-sm font-medium transition-colors hover:text-teal-500">
-              How It Works
-            </Link>
-            <Link href="#testimonials" className="text-sm font-medium transition-colors hover:text-teal-500">
-              Testimonials
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/profile">
-              <Button variant="outline" size="sm" className="hidden md:flex gap-2">
-                <User className="h-4 w-4" />
-                Profile
-              </Button>
-            </Link>
-            <Link href="#upload">
-              <Button size="sm" className="bg-teal-500 hover:bg-teal-600">
-                Get Started
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Use the new Header component */}
+      <Header showNav={true} showGetStarted={true} />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -330,40 +297,126 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 border-t relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-white opacity-60 dark:from-slate-900 dark:to-background"></div>
-          </div>
+        {/* Success Stories Section (Replacing CTA) */}
+        <section className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+          <div className="absolute inset-0 bg-dot-black/[0.03] dark:bg-dot-white/[0.03]"></div>
           <div className="container px-4 md:px-6 relative">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
-                  Ready to Transform Your Resume?
-                </h2>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
-                  Join thousands of job seekers who have improved their chances of landing their dream job.
+                <div className="inline-block rounded-lg bg-teal-100 dark:bg-teal-900/30 px-3 py-1 text-sm text-teal-700 dark:text-teal-300">
+                  Success Stories
+                </div>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">From Resume to Dream Job</h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed">
+                  Real stories from professionals who landed their ideal positions after using ResumeRise
                 </p>
               </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="#upload">
-                  <Button size="lg" className="bg-teal-500 hover:bg-teal-600 group">
-                    Analyze My Resume Now
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </Link>
-              </div>
-              <div className="pt-4 flex items-center justify-center gap-4">
-                <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white dark:border-slate-900"></div>
-                  <div className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white dark:border-slate-900"></div>
-                  <div className="w-8 h-8 rounded-full bg-slate-400 border-2 border-white dark:border-slate-900"></div>
-                  <div className="w-8 h-8 rounded-full bg-slate-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-medium text-white">
-                    +42
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-3">
+              {/* Success Story 1 */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:translate-y-[-5px]">
+                <div className="h-3 bg-teal-500"></div>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-12 w-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                      <Users className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">Tech Industry</h3>
+                      <p className="text-sm text-muted-foreground">Senior Developer Position</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    "After 6 months of job searching with no callbacks, I used ResumeRise to optimize my resume. Within
+                    2 weeks, I had 5 interviews and landed a senior role at a top tech company with a 30% salary
+                    increase."
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Award className="h-4 w-4 text-amber-500" />
+                      <span className="text-xs font-medium">30% Salary Increase</span>
+                    </div>
+                    <Link href="#upload">
+                      <Button variant="ghost" size="sm" className="text-teal-500 hover:text-teal-600 p-0">
+                        Try It Now
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">Join 50,000+ users improving their resumes</p>
               </div>
+
+              {/* Success Story 2 */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:translate-y-[-5px]">
+                <div className="h-3 bg-teal-500"></div>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-12 w-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                      <Sparkles className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">Career Change</h3>
+                      <p className="text-sm text-muted-foreground">Marketing to UX Design</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    "Changing careers seemed impossible until I used ResumeRise to highlight my transferable skills. The
+                    AI helped me showcase relevant experience I didn't know I had. I'm now a UX designer at my dream
+                    company."
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Award className="h-4 w-4 text-amber-500" />
+                      <span className="text-xs font-medium">Career Transition Success</span>
+                    </div>
+                    <Link href="#upload">
+                      <Button variant="ghost" size="sm" className="text-teal-500 hover:text-teal-600 p-0">
+                        Try It Now
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Success Story 3 */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:translate-y-[-5px]">
+                <div className="h-3 bg-teal-500"></div>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-12 w-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                      <FileUp className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">Recent Graduate</h3>
+                      <p className="text-sm text-muted-foreground">First Professional Role</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    "With limited experience, I struggled to get interviews. ResumeRise helped me optimize my academic
+                    projects and internships to showcase relevant skills. I received 3 job offers within a month!"
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Award className="h-4 w-4 text-amber-500" />
+                      <span className="text-xs font-medium">3 Job Offers</span>
+                    </div>
+                    <Link href="#upload">
+                      <Button variant="ghost" size="sm" className="text-teal-500 hover:text-teal-600 p-0">
+                        Try It Now
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link href="#upload">
+                <Button size="lg" className="bg-teal-500 hover:bg-teal-600">
+                  Start Your Success Story
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
