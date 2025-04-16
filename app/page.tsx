@@ -195,8 +195,7 @@ export default function Home() {
         </section>
 
         {/* How It Works Section */}
-        <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32 bg-muted relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-muted to-muted/80"></div>
+        <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-gradient-to-b from-teal-50 to-white dark:from-slate-900 dark:to-background">
           <div className="container px-4 md:px-6 relative">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -286,8 +285,7 @@ export default function Home() {
         </section>
 
         {/* Testimonials Section */}
-        <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 bg-muted relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-muted to-muted/80"></div>
+        <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-gradient-to-b from-teal-50 to-white dark:from-slate-900 dark:to-background">
           <div className="container px-4 md:px-6 relative">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
