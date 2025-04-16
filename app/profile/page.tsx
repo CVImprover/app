@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, FileText, BarChart2, Clock, CheckCircle, Upload, Bell, ExternalLink } from "lucide-react"
+import { ArrowLeft, FileText, BarChart2, Clock, CheckCircle, Upload, Bell, ExternalLink, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,11 +14,19 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import LoadingScreen from "@/components/loading-screen"
+import LogoutConfirmationDialog from "@/components/logout-confirmation-dialog"
+
+// Add this helper function before the ProfilePage component
+function capitalizeFirstLetter(string: string | undefined | null): string {
+  if (!string) return "User"
+  return string.charAt(0).toUpperCase() + string.slice(1)
+}
 
 export default function ProfilePage() {
-  const { user, isLoading, isAuthenticated } = useAuth()
+  const { user, isLoading, isAuthenticated, logout } = useAuth()
   const router = useRouter()
   const [pageLoading, setPageLoading] = useState(true)
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!isLoading) {
@@ -83,8 +91,8 @@ export default function ProfilePage() {
                         <>
                           <h1 className="text-xl font-bold">
                             {user?.first_name && user?.last_name
-                              ? `${user.first_name} ${user.last_name}`
-                              : user?.name || user?.username || "User"}
+                              ? `${capitalizeFirstLetter(user.first_name)} ${capitalizeFirstLetter(user.last_name)}`
+                              : capitalizeFirstLetter(user?.name || user?.username || "User")}
                           </h1>
                           <p className="text-sm text-muted-foreground">{user?.email || "No email provided"}</p>
                         </>
@@ -173,6 +181,13 @@ export default function ProfilePage() {
                     >
                       <span>Help & Support</span>
                     </Link>
+                    <button
+                      onClick={() => setLogoutDialogOpen(true)}
+                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 w-full text-left transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Log Out</span>
+                    </button>
                   </nav>
                 </CardContent>
               </Card>
@@ -472,6 +487,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </footer>
+      {/* Logout Confirmation Dialog */}
+      <LogoutConfirmationDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} onConfirm={logout} />
     </div>
   )
 }

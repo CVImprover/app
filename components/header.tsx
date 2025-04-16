@@ -20,6 +20,12 @@ interface HeaderProps {
   showGetStarted?: boolean
 }
 
+// Add this helper function before the Header component
+function capitalizeFirstLetter(string: string | undefined | null): string {
+  if (!string) return "Account"
+  return string.charAt(0).toUpperCase() + string.slice(1)
+}
+
 export default function Header({ showNav = true, showGetStarted = true }: HeaderProps) {
   const { isAuthenticated, isLoading, logout, user } = useAuth()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
@@ -62,7 +68,7 @@ export default function Header({ showNav = true, showGetStarted = true }: Header
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="hidden md:flex gap-2">
                       <User className="h-4 w-4" />
-                      {user?.username || "Account"}
+                      {capitalizeFirstLetter(user?.username)}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
