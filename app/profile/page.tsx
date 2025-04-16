@@ -11,12 +11,28 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import ResumeHistoryItem from "@/components/resume-history-item"
 import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import LoadingScreen from "@/components/loading-screen"
 
 export default function ProfilePage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const [pageLoading, setPageLoading] = useState(true)
 
-  // Debug log to see what user data we're getting
-  console.log("Profile page - User data:", user)
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/sign-in")
+      } else {
+        setPageLoading(false)
+      }
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  if (pageLoading || isLoading) {
+    return <LoadingScreen message="Loading profile..." />
+  }
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Upload, Save, Shield, X } from "lucide-react"
@@ -15,10 +14,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import LoadingScreen from "@/components/loading-screen"
+
 
 export default function EditProfilePage() {
   const [profileImage, setProfileImage] = useState<string>("/placeholder.svg?height=96&width=96")
   const [isUploading, setIsUploading] = useState(false)
+  const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const [pageLoading, setPageLoading] = useState(true)
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/sign-in")
+      } else {
+        setPageLoading(false)
+      }
+    }
+  }, [isLoading, isAuthenticated, router])  
 
   const handleImageUpload = () => {
     // Simulate image upload
@@ -42,6 +59,10 @@ export default function EditProfilePage() {
       action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
     })
   }
+
+  if (pageLoading || isLoading) {
+    return <LoadingScreen message="Loading profile..." />
+  }  
 
   return (
     <div className="flex min-h-screen flex-col">

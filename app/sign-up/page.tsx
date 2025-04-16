@@ -15,6 +15,9 @@ import { useCsrf } from "@/components/csrf-provider"
 import { authApi } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import Header from "@/components/header"
+import LoadingScreen from "@/components/loading-screen"
+import SuccessScreen from "@/components/success-screen"
+
 
 
 export default function SignUpPage() {
@@ -27,9 +30,21 @@ export default function SignUpPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | Record<string, string[]> | null>(null)
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
 
-  const { loading: csrfLoading } = useCsrf()
+  const { loading: csrfLoading, isAuthenticated } = useCsrf()
   const router = useRouter()
+
+  useEffect(() => {
+    // If user is already authenticated, redirect to profile page
+    if (isAuthenticated) {
+      router.push("/profile")
+    } else {
+      // Only set pageLoading to false if not authenticated
+      setPageLoading(false)
+    }
+  }, [isAuthenticated, router])  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -57,8 +72,8 @@ export default function SignUpPage() {
       // Register the user using the authApi
       await authApi.register(formData.username, formData.email, formData.password)
 
-      // Redirect to sign-in page after successful registration
-      router.push("/sign-in?registered=true")
+      // Show success screen instead of immediate redirect
+      setRegistrationSuccess(true)
     } catch (err) {
       console.error("Registration failed:", err)
 
@@ -80,10 +95,28 @@ export default function SignUpPage() {
     }
   }
 
-  // Debug: Log the error state whenever it changes
-  useEffect(() => {
-    console.log("Current error state:", error)
-  }, [error])
+  // If registration was successful, show the success screen
+  if (registrationSuccess) {
+    return (
+      <SuccessScreen
+        title="Registration Successful!"
+        message={`Welcome to ResumeRise, ${formData.username}! Your account has been created successfully. You'll be redirected to your profile page in a moment.`}
+        redirectPath="/profile"
+        redirectDelay={3000}
+        buttonText="Go to Profile"
+      />
+    )
+  }
+
+  // Show loading screen while CSRF is loading
+  if (csrfLoading) {
+    return <LoadingScreen message="Preparing registration form..." />
+  }
+
+  // Show loading state while checking authentication
+  if (pageLoading) {
+    return <LoadingScreen message="Checking authentication..." />
+  }  
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -272,15 +305,6 @@ export default function SignUpPage() {
               </div>
             </form>
 
-            <div className="absolute -bottom-6 -right-6 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 flex items-center gap-3 border border-teal-100 dark:border-slate-700">
-              <div className="bg-teal-500 rounded-full p-2 text-white">
-                <Check className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-medium">Join 50,000+ users</div>
-                <div className="text-xs text-muted-foreground">Improving their resumes today</div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
@@ -308,3 +332,4 @@ export default function SignUpPage() {
     </div>
   )
 }
+

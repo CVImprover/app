@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Check, CreditCard, Download, FileText, Info, Plus, Star, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,10 +11,27 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import LoadingScreen from "@/components/loading-screen"
 
 export default function SubscriptionPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
   const [currentPlan, setCurrentPlan] = useState<"free" | "pro" | "enterprise">("pro")
+  const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const [pageLoading, setPageLoading] = useState(true)
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/sign-in")
+      } else {
+        setPageLoading(false)
+      }
+    }
+  }, [isLoading, isAuthenticated, router])    
 
   const handleUpgrade = (plan: "free" | "pro" | "enterprise") => {
     if (plan === currentPlan) {
@@ -51,6 +67,10 @@ export default function SubscriptionPage() {
     }
   }
 
+  if (pageLoading || isLoading) {
+    return <LoadingScreen message="Loading profile..." />
+  }  
+    
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}

@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { FileUp, ArrowRight, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,16 +14,33 @@ import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-context"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Header from "@/components/header"
+import LoadingScreen from "@/components/loading-screen"
 
 export default function SignInPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
-  const { login, isLoading, error } = useAuth()
+  const [pageLoading, setPageLoading] = useState(true)
+  const { login, isLoading, error, isAuthenticated } = useAuth()
+  const router = useRouter()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/profile")
+    } else {
+      setPageLoading(false)
+    }
+  }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await login(username, password)
+  }
+
+  // Show loading state while checking authentication
+  if (pageLoading) {
+    return <LoadingScreen message="Checking authentication..." />
   }
 
   return (
