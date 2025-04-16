@@ -11,6 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useState } from "react"
+// Import the new LogoutConfirmationDialog component
+import LogoutConfirmationDialog from "@/components/logout-confirmation-dialog"
 
 interface HeaderProps {
   showNav?: boolean
@@ -19,6 +22,10 @@ interface HeaderProps {
 
 export default function Header({ showNav = true, showGetStarted = true }: HeaderProps) {
   const { isAuthenticated, isLoading, logout, user } = useAuth()
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+
+  // Debug log
+  console.log("Header - Auth state:", { isAuthenticated, isLoading, user })
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -71,19 +78,9 @@ export default function Header({ showNav = true, showGetStarted = true }: Header
                         <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile/subscription" className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Billing</span>
-                      </Link>
-                    </DropdownMenuItem>                    
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => {
-                        if (confirm("Are you sure you want to log out?")) {
-                          logout()
-                        }
-                      }}
+                      onClick={() => setLogoutDialogOpen(true)}
                       className="cursor-pointer text-red-500 focus:text-red-500"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
@@ -119,6 +116,9 @@ export default function Header({ showNav = true, showGetStarted = true }: Header
           )}
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <LogoutConfirmationDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} onConfirm={logout} />
     </header>
   )
 }
