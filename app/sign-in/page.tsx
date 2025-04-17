@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-context"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Header from "@/components/header"
+import Footer from "@/components/footer"
 import LoadingScreen from "@/components/loading-screen"
 
 export default function SignInPage() {
@@ -180,25 +181,7 @@ export default function SignInPage() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t py-6 md:py-0">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <div className="flex items-center gap-2">
-            <FileUp className="h-5 w-5 text-teal-500" />
-            <p className="text-sm font-medium">© {new Date().getFullYear()} ResumeRise. All rights reserved.</p>
-          </div>
-          <div className="flex gap-4">
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500">
-              Terms
-            </Link>
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500">
-              Privacy
-            </Link>
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500">
-              Contact
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

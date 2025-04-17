@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import LoadingScreen from "@/components/loading-screen"
 import LogoutConfirmationDialog from "@/components/logout-confirmation-dialog"
+import Footer from "@/components/footer"
 
 // Add this helper function before the ProfilePage component
 function capitalizeFirstLetter(string: string | undefined | null): string {
@@ -164,7 +165,7 @@ export default function ProfilePage() {
                       <span>Account Settings</span>
                     </Link>
                     <Link
-                      href="#"
+                      href="/privacy-security"
                       className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
                     >
                       <span>Privacy & Security</span>
@@ -469,24 +470,7 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      <footer className="border-t py-6 bg-background">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © {new Date().getFullYear()} ResumeRise. All rights reserved.
-          </p>
-          <div className="flex gap-4">
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500 transition-colors">
-              Terms
-            </Link>
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500 transition-colors">
-              Privacy
-            </Link>
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500 transition-colors">
-              Contact
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
       {/* Logout Confirmation Dialog */}
       <LogoutConfirmationDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} onConfirm={logout} />
     </div>
