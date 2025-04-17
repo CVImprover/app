@@ -18,7 +18,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import LoadingScreen from "@/components/loading-screen"
-
+import Footer from "@/components/footer"
 
 export default function EditProfilePage() {
   const [profileImage, setProfileImage] = useState<string>("/placeholder.svg?height=96&width=96")
@@ -441,24 +441,7 @@ export default function EditProfilePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-6">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © {new Date().getFullYear()} ResumeRise. All rights reserved.
-          </p>
-          <div className="flex gap-4">
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500">
-              Terms
-            </Link>
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500">
-              Privacy
-            </Link>
-            <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-teal-500">
-              Contact
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
