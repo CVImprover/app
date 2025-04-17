@@ -111,11 +111,17 @@ export const authApi = {
 
   // Register function
   register: async (username: string, email: string, password: string) => {
-    return fetchApi<{ success: boolean }>("/auth/registration/", {
-      method: "POST",
-      body: JSON.stringify({ username, email, password1: password, password2: password }),
-    })
+    try {
+      const response = await fetchApi<{ success: boolean; message?: string }>("/auth/registration/", {
+        method: "POST",
+        body: JSON.stringify({ username, email, password1: password, password2: password }),
+      })
+      return response
+    } catch (error) {
+      throw error
+    }
   },
+  
 
   // Logout function
   logout: async () => {

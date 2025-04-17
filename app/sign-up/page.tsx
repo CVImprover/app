@@ -14,11 +14,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useCsrf } from "@/components/csrf-provider"
 import { authApi } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
 import Header from "@/components/header"
 import LoadingScreen from "@/components/loading-screen"
 import SuccessScreen from "@/components/success-screen"
-
-
+import { useToast } from "@/hooks/use-toast"
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -32,16 +32,20 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | Record<string, string[]> | null>(null)
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
+  const [registeredCredentials, setRegisteredCredentials] = useState<{ username: string; password: string } | null>(
+    null,
+  )
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
   const { loading: csrfLoading, isAuthenticated } = useCsrf()
+  const { login } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
 
   useEffect(() => {
-    // If user is already authenticated, redirect to profile page
     if (isAuthenticated) {
       router.push("/profile")
     } else {
-      // Only set pageLoading to false if not authenticated
       setPageLoading(false)
     }
   }, [isAuthenticated, router])  
@@ -71,8 +75,15 @@ export default function SignUpPage() {
     try {
       // Register the user using the authApi
       await authApi.register(formData.username, formData.email, formData.password)
+      console.log("Registration successful")
 
-      // Show success screen instead of immediate redirect
+      // Store credentials for later login
+      setRegisteredCredentials({
+        username: formData.username,
+        password: formData.password,
+      })
+
+      // Show success screen
       setRegistrationSuccess(true)
     } catch (err) {
       console.error("Registration failed:", err)
@@ -95,15 +106,37 @@ export default function SignUpPage() {
     }
   }
 
-  // If registration was successful, show the success screen
+  // Function to handle login
+  const handleLogin = async () => {
+    if (!registeredCredentials || isLoggingIn) return
+
+    setIsLoggingIn(true)
+    try {
+      await login(registeredCredentials.username, registeredCredentials.password)
+      console.log("Auto-login successful after registration")
+      // The login function will handle the redirect to the profile page
+    } catch (err) {
+      console.error("Auto-login failed:", err)
+      toast({
+        title: "Login Failed",
+        description: "We couldn't log you in automatically. Please try signing in manually.",
+        variant: "destructive",
+      })
+      router.push("/sign-in")
+    }
+  }
+
+  // If registration was successful, show the success screen with login
   if (registrationSuccess) {
     return (
       <SuccessScreen
         title="Registration Successful!"
-        message={`Welcome to ResumeRise, ${formData.username}! Your account has been created successfully. You'll be redirected to your profile page in a moment.`}
+        message={`Welcome to ResumeRise, ${registeredCredentials?.username || ""}! Your account has been created successfully. You'll be redirected to your profile page in a moment.`}
         redirectPath="/profile"
         redirectDelay={3000}
-        buttonText="Go to Profile"
+        buttonText={isLoggingIn ? "Logging in..." : "Go to Profile"}
+        onButtonClick={handleLogin}
+        isButtonLoading={isLoggingIn}
       />
     )
   }
