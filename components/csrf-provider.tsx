@@ -16,48 +16,63 @@ const CsrfContext = createContext<CsrfContextType>({
   isAuthenticated: false,
 })
 
+// Update the CsrfProvider to handle authentication state changes more reliably
 export function CsrfProvider({ children }: { children: ReactNode }) {
   const [csrfToken, setCsrfToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  useEffect(() => {
-    // Function to get CSRF token and check authentication
-    const fetchCsrfToken = async () => {
+  // Function to get CSRF token and check authentication
+  const fetchCsrfToken = async () => {
+    try {
+      setLoading(true)
+      // Make a GET request to an endpoint that sets the CSRF cookie
+      await fetch(`${API_URL}/auth/csrf-token/`, {
+        method: "GET",
+        credentials: "include",
+      })
+
+      // Check if user is authenticated
       try {
-        // Make a GET request to an endpoint that sets the CSRF cookie
-        await fetch(`${API_URL}/auth/csrf-token/`, {
-          method: "GET",
-          credentials: "include",
-        })
-
-        // Check if user is authenticated
-        try {
-          const authCheck = await authApi.checkAuth()
-          setIsAuthenticated(authCheck.isAuthenticated)
-        } catch (error) {
-          console.error("Error checking authentication:", error)
-          setIsAuthenticated(false)
-        }
-
-        // The CSRF token should now be in the cookies
-        // We can extract it from cookies if needed
-        const cookies = document.cookie.split(";")
-        for (const cookie of cookies) {
-          const [name, value] = cookie.trim().split("=")
-          if (name === "csrftoken") {
-            setCsrfToken(value)
-            break
-          }
-        }
+        const authCheck = await authApi.checkAuth()
+        setIsAuthenticated(authCheck.isAuthenticated)
       } catch (error) {
-        console.error("Failed to fetch CSRF token:", error)
-      } finally {
-        setLoading(false)
+        console.error("Error checking authentication:", error)
+        setIsAuthenticated(false)
+      }
+
+      // The CSRF token should now be in the cookies
+      // We can extract it from cookies if needed
+      const cookies = document.cookie.split(";")
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split("=")
+        if (name === "csrftoken") {
+          setCsrfToken(value)
+          break
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch CSRF token:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Refresh CSRF token when component mounts
+  useEffect(() => {
+    fetchCsrfToken()
+
+    // Add event listener for storage events to handle logout in other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "logout") {
+        fetchCsrfToken()
       }
     }
 
-    fetchCsrfToken()
+    window.addEventListener("storage", handleStorageChange)
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
   }, [])
 
   return <CsrfContext.Provider value={{ csrfToken, loading, isAuthenticated }}>{children}</CsrfContext.Provider>

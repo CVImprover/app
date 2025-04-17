@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { FileUp, ArrowRight, Check, Loader2 } from "lucide-react"
+import { FileUp, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,8 +17,7 @@ import { useRouter } from "next/navigation"
 import Header from "@/components/header"
 import LoadingScreen from "@/components/loading-screen"
 import SuccessScreen from "@/components/success-screen"
-
-
+import { useAuth } from "@/lib/auth-context"
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -34,23 +33,37 @@ export default function SignUpPage() {
   const [pageLoading, setPageLoading] = useState(true)
 
   const { loading: csrfLoading, isAuthenticated } = useCsrf()
+  const { login } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    // If user is already authenticated, redirect to profile page
-    if (isAuthenticated) {
-      router.push("/profile")
-    } else {
-      // Only set pageLoading to false if not authenticated
-      setPageLoading(false)
+    // Add a flag to track if the component is mounted
+    let isMounted = true
+
+    const checkAuthAndSetLoading = async () => {
+      // If user is already authenticated, redirect to profile page
+      if (isAuthenticated) {
+        router.push("/profile")
+      } else if (isMounted) {
+        // Only set pageLoading to false if component is still mounted
+        setPageLoading(false)
+      }
     }
-  }, [isAuthenticated, router])  
+
+    checkAuthAndSetLoading()
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false
+    }
+  }, [isAuthenticated, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Add console logs to track the registration success state
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -70,10 +83,18 @@ export default function SignUpPage() {
 
     try {
       // Register the user using the authApi
+      console.log("Starting registration process...")
       await authApi.register(formData.username, formData.email, formData.password)
+      console.log("Registration successful, proceeding to login...")
+
+      // Use the login function from auth context to update authentication state
+      // Pass true to prevent immediate redirect
+      await login(formData.username, formData.password, true)
+      console.log("Login successful, showing success screen...")
 
       // Show success screen instead of immediate redirect
       setRegistrationSuccess(true)
+      console.log("Registration success state set:", true)
     } catch (err) {
       console.error("Registration failed:", err)
 
@@ -116,7 +137,7 @@ export default function SignUpPage() {
   // Show loading state while checking authentication
   if (pageLoading) {
     return <LoadingScreen message="Checking authentication..." />
-  }  
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -304,7 +325,6 @@ export default function SignUpPage() {
                 </Link>
               </div>
             </form>
-
           </div>
         </div>
       </main>
@@ -332,4 +352,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-

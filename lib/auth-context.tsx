@@ -7,14 +7,14 @@ import { useCsrf } from "@/components/csrf-provider"
 
 // Update the User interface to match the API response structure
 interface User {
-    pk?: number // Add pk field from API
-    id?: string // Keep id for backward compatibility
-    username: string
-    email?: string
-    first_name?: string
-    last_name?: string
-    name?: string // Keep name for backward compatibility
-  }
+  pk?: number // Add pk field from API
+  id?: string // Keep id for backward compatibility
+  username: string
+  email?: string
+  first_name?: string
+  last_name?: string
+  name?: string // Keep name for backward compatibility
+}
 
 interface AuthContextType {
   user: User | null
@@ -43,34 +43,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (csrfLoading) return
 
     const checkAuth = async () => {
-        try {
-          setIsLoading(true)
-          const response = await authApi.checkAuth()
-          console.log("Auth check response:", response) // Debug log
-  
-          setIsAuthenticated(response.isAuthenticated)
-  
-          // If we have user data, set it
-          if (response.user) {
-            console.log("User data from API:", response.user) // Debug log
-            setUser(response.user)
-          } else {
-            setUser(null)
-          }
-        } catch (err) {
-          console.error("Auth check failed:", err)
-          setIsAuthenticated(false)
+      try {
+        setIsLoading(true)
+        const response = await authApi.checkAuth()
+        console.log("Auth check response:", response) // Debug log
+
+        // Update authentication state
+        const newIsAuthenticated = response.isAuthenticated
+        setIsAuthenticated(newIsAuthenticated)
+
+        // If we have user data, set it
+        if (response.user) {
+          console.log("User data from API:", response.user) // Debug log
+          setUser(response.user)
+        } else {
           setUser(null)
-        } finally {
-          setIsLoading(false)
         }
+      } catch (err) {
+        console.error("Auth check failed:", err)
+        // Clear authentication state on error
+        setIsAuthenticated(false)
+        setUser(null)
+      } finally {
+        setIsLoading(false)
       }
+    }
 
     checkAuth()
   }, [csrfLoading, csrfToken])
 
   // Login function
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, preventRedirect = false) => {
     setError(null)
     setIsLoading(true)
 
@@ -82,8 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user)
       setIsAuthenticated(true)
 
-      // Redirect to profile page after successful login
-      router.push("/profile")
+      // Only redirect if preventRedirect is false
+      if (!preventRedirect) {
+        // Redirect to profile page after successful login
+        router.push("/profile")
+      }
     } catch (err) {
       console.error("Login failed:", err)
       setError(err instanceof Error ? err.message : "Login failed. Please try again.")
@@ -100,11 +106,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       await authApi.logout()
+
+      // Clear user and authentication state immediately
       setUser(null)
       setIsAuthenticated(false)
 
-      // Redirect to home page after logout
-      router.push("/")
+      // Clear any stored authentication data from localStorage if you're using it
+      localStorage.removeItem("authState")
+
+      // Add a small delay before redirecting to ensure state is updated
+      setTimeout(() => {
+        // Redirect to home page after logout
+        router.push("/")
+      }, 100)
     } catch (err) {
       console.error("Logout failed:", err)
       setError(err instanceof Error ? err.message : "Logout failed. Please try again.")

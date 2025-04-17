@@ -117,13 +117,25 @@ export const authApi = {
     })
   },
 
-  // Logout function
+  // Update the logout function in the API to ensure proper cleanup
   logout: async () => {
-    return fetchApi<{ success: boolean }>("/auth/logout/", {
-      method: "POST",
-      // Empty body but still need to send the CSRF token
-      body: JSON.stringify({}),
-    })
+    try {
+      const result = await fetchApi<{ success: boolean }>("/auth/logout/", {
+        method: "POST",
+        // Empty body but still need to send the CSRF token
+        body: JSON.stringify({}),
+      })
+
+      // Broadcast logout event to other tabs
+      localStorage.setItem("logout", Date.now().toString())
+      // Remove the item immediately to allow future logout events
+      localStorage.removeItem("logout")
+
+      return result
+    } catch (error) {
+      console.error("Logout API error:", error)
+      throw error
+    }
   },
 
   // Check if user is authenticated

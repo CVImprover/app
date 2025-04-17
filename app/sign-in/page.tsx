@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { FileUp, ArrowRight, LockKeyhole, Loader2 } from "lucide-react"
+import { FileUp, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,10 +26,22 @@ export default function SignInPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/profile")
-    } else {
-      setPageLoading(false)
+    // Add a flag to track if the component is mounted
+    let isMounted = true
+
+    const checkAuthAndSetLoading = async () => {
+      if (isAuthenticated) {
+        router.push("/profile")
+      } else if (isMounted) {
+        setPageLoading(false)
+      }
+    }
+
+    checkAuthAndSetLoading()
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false
     }
   }, [isAuthenticated, router])
 
@@ -47,7 +59,6 @@ export default function SignInPage() {
     <div className="flex min-h-screen flex-col">
       {/* Use the Header component with no navigation */}
       <Header showNav={false} showGetStarted={false} />
-
 
       <main className="flex-1 relative overflow-hidden">
         {/* Background decorative elements */}
@@ -174,7 +185,6 @@ export default function SignInPage() {
                 </Link>
               </div>
             </form>
-
           </div>
         </div>
       </main>
@@ -202,4 +212,3 @@ export default function SignInPage() {
     </div>
   )
 }
-
