@@ -139,9 +139,6 @@ export const authApi = {
         method: "GET",
       })
 
-      console.log("Raw user data from API:", userData) // Debug log
-
-      // If we get a response with a username, the user is authenticated
       const isAuthenticated = !!(userData && userData.username)
 
       return {
@@ -151,6 +148,42 @@ export const authApi = {
     } catch (error) {
       console.error("Error checking auth:", error)
       return { isAuthenticated: false, user: null }
+    }
+  },
+
+}
+
+
+export const userApi = {
+  // Get user profile data
+  getProfile: async () => {
+    try {
+      return await fetchApi<any>("/auth/user/", {
+        method: "GET",
+      })
+    } catch (error) {
+      console.error("Failed to fetch profile:", error)
+      throw error
+    }
+  },
+
+  // Update user profile data
+  updateProfile: async (userData) => {
+    try {
+      // First, ensure we have a fresh CSRF token
+      await fetch(getApiUrl("/auth/csrf-token/"), {
+        method: "GET",
+        credentials: "include",
+      })
+
+      // Now use fetchApi which will include the CSRF token
+      return await fetchApi<any>("/auth/user/", {
+        method: "PATCH",
+        body: JSON.stringify(userData),
+      })
+    } catch (error) {
+      console.error("Failed to update profile:", error)
+      throw error
     }
   },
 }
