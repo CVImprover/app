@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useCsrf } from "@/components/csrf-provider"
-import { authApi } from "@/lib/api"
+import { authApi, userApi } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import Header from "@/components/header"
@@ -43,13 +43,38 @@ export default function SignUpPage() {
   const router = useRouter()
   const { toast } = useToast()
 
+  // Check if user is already authenticated by calling getProfile
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/profile")
-    } else {
-      setPageLoading(false)
+    const checkAuthentication = async () => {
+      try {
+        // First check if CSRF is still loading
+        if (csrfLoading) {
+          return // Wait for CSRF to load
+        }
+
+        // If isAuthenticated is already true from context, redirect immediately
+        if (isAuthenticated) {
+          console.log("User already authenticated via context, redirecting to profile")
+          router.push("/profile")
+          return
+        }
+
+        // Otherwise, try to fetch profile data to double-check authentication
+        console.log("Checking authentication via getProfile API call")
+        const userData = await userApi.getProfile()
+
+        // If we get here without an error, the user is authenticated
+        console.log("User is authenticated via API, redirecting to profile")
+        router.push("/profile")
+      } catch (err) {
+        // If getProfile fails, user is not authenticated
+        console.log("User is not authenticated, showing sign-up form")
+        setPageLoading(false)
+      }
     }
-  }, [isAuthenticated, router])  
+
+    checkAuthentication()
+  }, [csrfLoading, isAuthenticated, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -142,15 +167,10 @@ export default function SignUpPage() {
     )
   }
 
-  // Show loading screen while CSRF is loading
-  if (csrfLoading) {
-    return <LoadingScreen message="Preparing registration form..." />
-  }
-
-  // Show loading state while checking authentication
-  if (pageLoading) {
+  // Show loading screen while checking authentication
+  if (csrfLoading || pageLoading) {
     return <LoadingScreen message="Checking authentication..." />
-  }  
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -264,25 +284,21 @@ export default function SignUpPage() {
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   I agree to the{" "}
-                  <Link href="#" className="text-teal-500 hover:underline">
+                  <Link href="/terms" className="text-teal-500 hover:underline">
                     terms of service
                   </Link>{" "}
                   and{" "}
-                  <Link href="#" className="text-teal-500 hover:underline">
+                  <Link href="/privacy-security" className="text-teal-500 hover:underline">
                     privacy policy
                   </Link>
                 </label>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-teal-500 hover:bg-teal-600 group"
-                disabled={isLoading || csrfLoading}
-              >
-                {isLoading || csrfLoading ? (
+              <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600 group" disabled={isLoading}>
+                {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {csrfLoading ? "Loading..." : "Creating Account..."}
+                    Creating Account...
                   </>
                 ) : (
                   <>

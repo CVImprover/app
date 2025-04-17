@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
 import { CsrfProvider } from "@/components/csrf-provider"
 import CookieConsent from "@/components/cookie-consent"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -28,6 +29,7 @@ export default function RootLayout({
             <AuthProvider>
               {children}
               <CookieConsent />
+              <Toaster />
             </AuthProvider>
           </CsrfProvider>
         </ThemeProvider>

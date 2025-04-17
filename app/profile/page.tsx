@@ -2,7 +2,18 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, FileText, BarChart2, Clock, CheckCircle, Upload, Bell, ExternalLink, LogOut } from "lucide-react"
+import {
+  ArrowLeft,
+  FileText,
+  BarChart2,
+  Clock,
+  CheckCircle,
+  Upload,
+  Bell,
+  ExternalLink,
+  LogOut,
+  AlertCircle,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,6 +27,18 @@ import { useEffect, useState } from "react"
 import LoadingScreen from "@/components/loading-screen"
 import LogoutConfirmationDialog from "@/components/logout-confirmation-dialog"
 import Footer from "@/components/footer"
+import { userApi } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
+
+// Define the user data interface based on your API response
+interface UserData {
+  pk: number
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  date_of_birth?: string
+}
 
 // Add this helper function before the ProfilePage component
 function capitalizeFirstLetter(string: string | undefined | null): string {
@@ -24,24 +47,55 @@ function capitalizeFirstLetter(string: string | undefined | null): string {
 }
 
 export default function ProfilePage() {
-  const { user, isLoading, isAuthenticated, logout } = useAuth()
+  const { user: authUser, isLoading: authLoading, isAuthenticated, logout } = useAuth()
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const [pageLoading, setPageLoading] = useState(true)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const { toast } = useToast()
 
+  // Fetch fresh user data when component mounts
   useEffect(() => {
-    if (!isLoading) {
+    const fetchUserData = async () => {
+      if (authLoading) return
+
       if (!isAuthenticated) {
         router.push("/")
-      } else {
-        setPageLoading(false)
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        const data = await userApi.getProfile()
+        setUserData(data)
+        setError(null)
+        console.log("Fetched fresh user data:", data)
+      } catch (err) {
+        console.error("Failed to fetch user data:", err)
+        setError("Failed to load profile data")
+        toast({
+          title: "Error",
+          description: "Failed to load profile data. Using cached data instead.",
+          variant: "destructive",
+        })
+        // Fall back to auth context data if API call fails
+        setUserData(authUser as UserData)
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [isLoading, isAuthenticated, router])
 
-  if (pageLoading || isLoading) {
+    fetchUserData()
+  }, [authLoading, isAuthenticated, router, authUser, toast])
+
+  // Show loading screen while fetching data
+  if (authLoading || (isLoading && !userData)) {
     return <LoadingScreen message="Loading profile..." />
   }
+
+  // Use userData if available, otherwise fall back to authUser
+  const displayUser = userData || authUser
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -66,6 +120,13 @@ export default function ProfilePage() {
 
       <main className="flex-1 py-6 md:py-12 bg-muted/30">
         <div className="container px-4 md:px-6">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+              <div>{error}</div>
+            </div>
+          )}
+
           <div className="grid gap-8 md:grid-cols-[1fr_3fr]">
             {/* Profile Sidebar */}
             <div className="space-y-6">
@@ -91,11 +152,11 @@ export default function ProfilePage() {
                       ) : (
                         <>
                           <h1 className="text-xl font-bold">
-                            {user?.first_name && user?.last_name
-                              ? `${capitalizeFirstLetter(user.first_name)} ${capitalizeFirstLetter(user.last_name)}`
-                              : capitalizeFirstLetter(user?.name || user?.username || "User")}
+                            {displayUser?.first_name && displayUser?.last_name
+                              ? `${capitalizeFirstLetter(displayUser.first_name)} ${capitalizeFirstLetter(displayUser.last_name)}`
+                              : capitalizeFirstLetter(displayUser?.name || displayUser?.username || "User")}
                           </h1>
-                          <p className="text-sm text-muted-foreground">{user?.email || "No email provided"}</p>
+                          <p className="text-sm text-muted-foreground">E-mail: {displayUser?.email || "No email provided"}</p>
                         </>
                       )}
                     </div>
