@@ -151,6 +151,21 @@ export const authApi = {
     }
   },
 
+  // Password change function
+  changePassword: async (newPassword1: string, newPassword2: string) => {
+    try {
+
+      // Now attempt to change the password
+      return fetchApi<{ detail: string }>("/auth/password/change/", {
+        method: "POST",
+        body: JSON.stringify({ new_password1: newPassword1, new_password2: newPassword2 }),
+      })
+    } catch (error) {
+      console.error("Failed to change password:", error)
+      throw error
+    }
+  },  
+
 }
 
 
@@ -170,13 +185,11 @@ export const userApi = {
   // Update user profile data
   updateProfile: async (userData) => {
     try {
-      // First, ensure we have a fresh CSRF token
       await fetch(getApiUrl("/auth/csrf-token/"), {
         method: "GET",
         credentials: "include",
       })
 
-      // Now use fetchApi which will include the CSRF token
       return await fetchApi<any>("/auth/user/", {
         method: "PATCH",
         body: JSON.stringify(userData),
