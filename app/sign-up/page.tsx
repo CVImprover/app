@@ -43,32 +43,22 @@ export default function SignUpPage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Check if user is already authenticated by calling getProfile
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
-        // First check if CSRF is still loading
         if (csrfLoading) {
-          return // Wait for CSRF to load
-        }
-
-        // If isAuthenticated is already true from context, redirect immediately
-        if (isAuthenticated) {
-          console.log("User already authenticated via context, redirecting to profile")
-          router.push("/profile")
           return
         }
 
-        // Otherwise, try to fetch profile data to double-check authentication
-        console.log("Checking authentication via getProfile API call")
-        const userData = await userApi.getProfile()
+        const { isAuthenticated, user } = await authApi.checkAuth()
+        if (isAuthenticated) {
+          router.push("/profile")
+          return
+        }
+        setPageLoading(false)
 
-        // If we get here without an error, the user is authenticated
-        console.log("User is authenticated via API, redirecting to profile")
-        router.push("/profile")
       } catch (err) {
-        // If getProfile fails, user is not authenticated
-        console.log("User is not authenticated, showing sign-up form")
+        setError("User is not authenticated, showing sign-up form")
         setPageLoading(false)
       }
     }
@@ -99,27 +89,16 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
-      // Register the user using the authApi
       await authApi.register(formData.username, formData.email, formData.password)
-      console.log("Registration successful")
 
-      // Store credentials for later login
       setRegisteredCredentials({
         username: formData.username,
         password: formData.password,
       })
 
-      // Show success screen
       setRegistrationSuccess(true)
     } catch (err) {
-      console.error("Registration failed:", err)
-
-      // Log the error type for debugging
-      console.log("Error type:", typeof err)
-      console.log("Error is Error instance:", err instanceof Error)
-      console.log("Error keys:", err && typeof err === "object" ? Object.keys(err) : "Not an object")
-
-      // Handle different error types
+      setError("Registration failed:", )
       if (err && typeof err === "object" && !(err instanceof Error)) {
         setError(err as Record<string, string[]>)
       } else if (err instanceof Error) {
@@ -132,15 +111,12 @@ export default function SignUpPage() {
     }
   }
 
-  // Function to handle login
   const handleLogin = async () => {
     if (!registeredCredentials || isLoggingIn) return
 
     setIsLoggingIn(true)
     try {
       await login(registeredCredentials.username, registeredCredentials.password)
-      console.log("Auto-login successful after registration")
-      // The login function will handle the redirect to the profile page
     } catch (err) {
       console.error("Auto-login failed:", err)
       toast({
@@ -152,7 +128,6 @@ export default function SignUpPage() {
     }
   }
 
-  // If registration was successful, show the success screen with login
   if (registrationSuccess) {
     return (
       <SuccessScreen
@@ -167,7 +142,6 @@ export default function SignUpPage() {
     )
   }
 
-  // Show loading screen while checking authentication
   if (csrfLoading || pageLoading) {
     return <LoadingScreen message="Checking authentication..." />
   }
