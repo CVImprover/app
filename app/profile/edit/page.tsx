@@ -5,11 +5,10 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Upload, Save, Shield, X, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { ArrowLeft, Upload, Save, Shield, X, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
@@ -18,7 +17,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import LoadingScreen from "@/components/loading-screen"
 import Footer from "@/components/footer"
-import { userApi } from "@/lib/api"
+import { userApi, authApi } from "@/lib/api"
 
 // Define the user data interface based on your API response
 interface UserData {
@@ -27,6 +26,8 @@ interface UserData {
   email: string
   first_name: string
   last_name: string
+  phone_number: string
+  address: string
   date_of_birth: string
 }
 
@@ -38,6 +39,17 @@ export default function EditProfilePage() {
   const [profileImage, setProfileImage] = useState<string>("/placeholder.svg?height=96&width=96")
   const [isUploading, setIsUploading] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Password state
+  const [passwordData, setPasswordData] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | Record<string, string[]> | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -92,7 +104,7 @@ export default function EditProfilePage() {
       action: <ToastAction altText="Try again">Try again</ToastAction>,
       icon: <AlertCircle className="h-5 w-5" />,
     })
-  }  
+  }
 
   // Handle form field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -111,9 +123,11 @@ export default function EditProfilePage() {
 
     if (!userData) return
 
+    // Clear previous messages
     setError(null)
     setSuccessMessage(null)
     setIsSaving(true)
+
     try {
       // Create a copy of userData and remove any fields you don't want to update
       const { username, pk, ...updateData } = userData
@@ -122,8 +136,8 @@ export default function EditProfilePage() {
 
       const updatedData = await userApi.updateProfile(updateData)
       setUserData({ ...userData, ...updatedData })
-      setError(null)
-     // Set success message
+
+      // Set success message
       const successMsg = "Your profile has been successfully updated."
       setSuccessMessage(successMsg)
       showSuccessToast(successMsg)
@@ -132,6 +146,7 @@ export default function EditProfilePage() {
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
       console.error("Failed to update profile:", err)
+
       // Handle different error types
       let errorMessage = "There was a problem updating your profile. Please try again."
 
@@ -171,6 +186,80 @@ export default function EditProfilePage() {
       setProfileImage("/placeholder.svg?height=96&width=96")
       showSuccessToast("Your profile picture has been successfully updated.")
     }, 1500)
+  }
+
+  // Handle password form field changes
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setPasswordData({
+      ...passwordData,
+      [name]: value,
+    })
+  }
+
+  // Handle password update
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault() // This is crucial to prevent page reload
+    console.log("Password update form submitted")
+
+    // Clear previous messages
+    setPasswordError(null)
+    setPasswordSuccess(null)
+
+    // Basic validation
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError("New passwords do not match")
+      return
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters long")
+      return
+    }
+
+    setIsChangingPassword(true)
+
+    try {
+      await authApi.changePassword(passwordData.newPassword, passwordData.confirmPassword)
+
+      // Set success message
+      const successMsg = "Your password has been successfully updated."
+      setPasswordSuccess(successMsg)
+      showSuccessToast(successMsg)
+
+      // Clear form
+      setPasswordData({
+        newPassword: "",
+        confirmPassword: "",
+      })
+    } catch (err) {
+      console.error("Failed to update password:", err)
+
+      // Handle different error types
+      let errorMessage = "There was a problem updating your password. Please try again."
+
+      if (err && typeof err === "object") {
+        // If the error is an object with field-specific errors
+        if ("old_password" in err) {
+          errorMessage = `Current password error: ${err.old_password}`
+        } else if ("new_password1" in err) {
+          errorMessage = `New password error: ${err.new_password1}`
+        } else if ("new_password2" in err) {
+          errorMessage = `Confirm password error: ${err.new_password2}`
+        } else if ("detail" in err) {
+          errorMessage = err.detail
+        } else if ("message" in err) {
+          errorMessage = err.message
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message
+      }
+
+      setPasswordError(errorMessage)
+      showErrorToast(errorMessage)
+    } finally {
+      setIsChangingPassword(false)
+    }
   }
 
   // Show loading screen while fetching data
@@ -249,63 +338,67 @@ export default function EditProfilePage() {
               <div>{error}</div>
             </div>
           )}
+
           <Separator className="mb-6" />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Profile Picture */}
-            {/* <Card>
-              <CardHeader>
-                <CardTitle>Profile Picture</CardTitle>
-                <CardDescription>Upload a new profile picture or avatar</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-                  <div className="relative">
-                    <div className="relative h-24 w-24">
-                      <Image
-                        src={profileImage || "/placeholder.svg"}
-                        alt="Profile picture"
-                        className="rounded-full border-4 border-background object-cover"
-                        fill
-                      />
-                      {isUploading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent"></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="text-sm text-muted-foreground">
-                      <p>Recommended: Square JPG, PNG, or GIF, at least 300x300 pixels.</p>
-                      <p>Maximum file size: 5MB</p>
-                    </div>
-                    <div className="flex gap-4">
-                      <Button type="button" variant="outline" size="sm" onClick={handleImageUpload} className="gap-2">
-                        <Upload className="h-4 w-4" />
-                        Upload New Picture
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
+          <div className="space-y-6">
+            {/* Profile form */}
+            <form onSubmit={handleSubmit}>
+              {/* Profile Picture
+              // <Card>
+              //   <CardHeader>
+              //     <CardTitle>Profile Picture</CardTitle>
+              //     <CardDescription>Upload a new profile picture or avatar</CardDescription>
+              //   </CardHeader>
+              //   <CardContent className="space-y-4">
+              //     <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+              //       <div className="relative">
+              //         <div className="relative h-24 w-24">
+              //           <Image
+              //             src={profileImage || "/placeholder.svg"}
+              //             alt="Profile picture"
+              //             className="rounded-full border-4 border-background object-cover"
+              //             fill
+              //           />
+              //           {isUploading && (
+              //             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+              //               <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent"></div>
+              //             </div>
+              //           )}
+              //         </div>
+              //       </div>
+              //       <div className="flex flex-col gap-4">
+              //         <div className="text-sm text-muted-foreground">
+              //           <p>Recommended: Square JPG, PNG, or GIF, at least 300x300 pixels.</p>
+              //           <p>Maximum file size: 5MB</p>
+              //         </div>
+              //         <div className="flex gap-4">
+              //           <Button type="button" variant="outline" size="sm" onClick={handleImageUpload} className="gap-2">
+              //             <Upload className="h-4 w-4" />
+              //             Upload New Picture
+              //           </Button>
+              //           <Button
+              //             type="button"
+              //             variant="ghost"
+              //             size="sm"
+              //             className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
+              //           >
+              //             Remove
+              //           </Button>
+              //         </div>
+              //       </div>
+              //     </div>
+              //   </CardContent>
+              // </Card> */}
 
-            {/* Personal Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Update your personal details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">             
-              <div className="space-y-2">
+              {/* Personal Information */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>Update your personal details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
@@ -315,82 +408,205 @@ export default function EditProfilePage() {
                       disabled
                     />
                     <p className="text-xs text-muted-foreground">Username cannot be changed</p>
-                  </div>                               
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input
-                      id="first_name"
-                      name="first_name"
-                      value={userData?.first_name || ""}
-                      onChange={handleChange}
-                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name">Last Name</Label>
-                    <Input id="last_name" name="last_name" value={userData?.last_name || ""} onChange={handleChange} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First Name</Label>
+                      <Input
+                        id="first_name"
+                        name="first_name"
+                        value={userData?.first_name || ""}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <Input
+                        id="last_name"
+                        name="last_name"
+                        value={userData?.last_name || ""}
+                        onChange={handleChange}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">Date of Birth</Label>
-                    <Input
-                      id="date_of_birth"
-                      name="date_of_birth"
-                      type="date"
-                      value={userData?.date_of_birth || ""}
-                      onChange={handleChange}
-                    />
-                  </div>                  
-                  <div className="space-y-2">
-                  </div>  
-                </div>                                     
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="bg-teal-500 hover:bg-teal-600 gap-2" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
 
-            {/* Change Password */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={userData?.email || ""}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="date_of_birth">Date of Birth</Label>
+                      <Input
+                        id="date_of_birth"
+                        name="date_of_birth"
+                        type="date"
+                        value={userData?.date_of_birth || ""}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="bg-teal-500 hover:bg-teal-600 gap-2" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </form>
+
+            {/* Password Change - SEPARATE FORM */}
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
                 <CardDescription>Update your password to keep your account secure</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <Input id="current-password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input id="confirm-password" type="password" />
-                </div>
+                {/* Password success message */}
+                {passwordSuccess && (
+                  <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 flex items-start">
+                    <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                    <div>{passwordSuccess}</div>
+                  </div>
+                )}
+
+                {/* Password error message */}
+                {passwordError && (
+                  <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 flex items-start">
+                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      {typeof passwordError === "string" ? (
+                        passwordError
+                      ) : (
+                        <ul className="list-disc pl-5 space-y-1">
+                          {Object.entries(passwordError).map(([field, messages]) =>
+                            Array.isArray(messages) ? (
+                              messages.map((message, i) => (
+                                <li key={`${field}-${i}`}>
+                                  <strong>
+                                    {field === "new_password1"
+                                      ? "New password"
+                                      : field === "new_password2"
+                                        ? "Confirm password"
+                                        : field === "old_password"
+                                          ? "Current password"
+                                          : field}
+                                    :
+                                  </strong>{" "}
+                                  {message}
+                                </li>
+                              ))
+                            ) : (
+                              <li key={field}>
+                                <strong>
+                                  {field === "new_password1"
+                                    ? "New password"
+                                    : field === "new_password2"
+                                      ? "Confirm password"
+                                      : field === "old_password"
+                                        ? "Current password"
+                                        : field}
+                                  :
+                                </strong>{" "}
+                                {String(messages)}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Password change form - SEPARATE FORM */}
+                <form onSubmit={handlePasswordUpdate}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="newPassword"
+                          name="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordChange}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          <span className="sr-only">{showNewPassword ? "Hide" : "Show"} password</span>
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Password must be at least 8 characters and cannot be entirely numeric.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          <span className="sr-only">{showConfirmPassword ? "Hide" : "Show"} password</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <Button type="submit" className="gap-2 bg-teal-500 hover:bg-teal-600" disabled={isChangingPassword}>
+                      {isChangingPassword ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Updating Password...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="h-4 w-4" />
+                          Update Password
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </CardContent>
-              <CardFooter>
-                <Button type="button" variant="outline" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  Update Password
-                </Button>
-              </CardFooter>
             </Card>
-          </form>
+          </div>
         </div>
       </main>
 

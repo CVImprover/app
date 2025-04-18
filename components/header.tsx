@@ -12,8 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useState } from "react"
-// Import the new LogoutConfirmationDialog component
 import LogoutConfirmationDialog from "@/components/logout-confirmation-dialog"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface HeaderProps {
   showNav?: boolean
@@ -61,6 +61,7 @@ export default function Header({ showNav = true, showGetStarted = true }: Header
         )}
 
         <div className="flex items-center gap-4">
+        <ThemeToggle />
           {!isLoading && (
             <>
               {isAuthenticated ? (
