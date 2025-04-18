@@ -132,6 +132,10 @@ export default function EditProfilePage() {
       // Create a copy of userData and remove any fields you don't want to update
       const { username, pk, ...updateData } = userData
 
+      if (updateData.date_of_birth === "") {
+        updateData.date_of_birth = null
+      }
+
       console.log("Submitting update data:", updateData)
 
       const updatedData = await userApi.updateProfile(updateData)

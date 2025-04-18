@@ -40,9 +40,9 @@ interface UserData {
   date_of_birth?: string
 }
 
-// Add this helper function before the ProfilePage component
+// Add this helper function before the ProfilePage component. NB! this function is not needed as we can capitalize directly
 function capitalizeFirstLetter(string: string | undefined | null): string {
-  if (!string) return "User"
+  if (!string) return ""
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
@@ -152,11 +152,13 @@ export default function ProfilePage() {
                       ) : (
                         <>
                           <h1 className="text-xl font-bold">
-                            {displayUser?.first_name && displayUser?.last_name
-                              ? `${capitalizeFirstLetter(displayUser.first_name)} ${capitalizeFirstLetter(displayUser.last_name)}`
+                            {displayUser?.first_name || displayUser?.last_name
+                              ? `${capitalizeFirstLetter(displayUser.first_name || "")} ${capitalizeFirstLetter(displayUser.last_name || "")}`.trim()
                               : capitalizeFirstLetter(displayUser?.name || displayUser?.username || "User")}
                           </h1>
-                          <p className="text-sm text-muted-foreground">E-mail: {displayUser?.email || "No email provided"}</p>
+                          <p className="text-sm text-muted-foreground">
+                            E-mail: {displayUser?.email || "No email provided"}
+                          </p>
                         </>
                       )}
                     </div>
