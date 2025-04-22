@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
+import AuthenticationModal from "@/components/authentication-modal"
 import {
   Briefcase,
   Building2,
@@ -44,16 +46,21 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
     additionalContext: "",
   })
 
+  const { isAuthenticated } = useAuth()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
   const contentRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (contentRef.current) {
-      const offset = 80 // px from the top, adjust as needed
-      const top = contentRef.current.getBoundingClientRect().top + window.scrollY - offset
-      window.scrollTo({ top, behavior: "smooth" })
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        const offset = 80 // px from the top, adjust as needed
+        const top = contentRef.current.getBoundingClientRect().top + window.scrollY - offset
+        window.scrollTo({ top, behavior: "smooth" })
+      }, 100)
     }
   }, [step])
-
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -65,7 +72,7 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
   const handleNext = () => {
     if (step < totalSteps) {
       setStep(step + 1)
-      window.scrollTo(0, 0)
+      // Remove this line: window.scrollTo(0, 0)
     } else {
       handleSubmit()
     }
@@ -74,7 +81,7 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1)
-      window.scrollTo(0, 0)
+      // Remove this line: window.scrollTo(0, 0)
     }
   }
 
@@ -82,9 +89,15 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
     // In a real app, you would send the formData to your backend
     console.log("Form data submitted:", formData)
 
-    // Navigate to the analysis page with the resume ID
-    router.push(`/analysis/${resumeId}`)
-    onComplete()
+    // Check if the user is authenticated
+    if (isAuthenticated) {
+      // If authenticated, navigate to the analysis page
+      router.push(`/analysis/${resumeId}`)
+      onComplete()
+    } else {
+      // If not authenticated, show the authentication modal
+      setShowAuthModal(true)
+    }
   }
 
   const canProceed = () => {
@@ -305,16 +318,6 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
                     onChange={(e) => handleChange("specificJobDescription", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="additionalContext">Any additional context about your job search? (optional)</Label>
-                  <Textarea
-                    id="additionalContext"
-                    placeholder="e.g., career change, returning to workforce, specific challenges"
-                    className="min-h-[100px]"
-                    value={formData.additionalContext}
-                    onChange={(e) => handleChange("additionalContext", e.target.value)}
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -342,6 +345,16 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
           )}
         </Button>
       </CardFooter>
+      {/* Authentication Modal */}
+      <AuthenticationModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false)
+          onComplete()
+        }}
+        resumeId={resumeId}
+      />
     </Card>
   )
 }
