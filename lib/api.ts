@@ -121,7 +121,6 @@ export const authApi = {
       throw error
     }
   },
-  
 
   // Logout function
   logout: async () => {
@@ -154,7 +153,6 @@ export const authApi = {
   // Password change function
   changePassword: async (newPassword1: string, newPassword2: string) => {
     try {
-
       // Now attempt to change the password
       return fetchApi<{ detail: string }>("/auth/password/change/", {
         method: "POST",
@@ -164,10 +162,8 @@ export const authApi = {
       console.error("Failed to change password:", error)
       throw error
     }
-  },  
-
+  },
 }
-
 
 export const userApi = {
   // Get user profile data
@@ -199,4 +195,102 @@ export const userApi = {
       throw error
     }
   },
+}
+
+// Resume API functions
+export const resumeApi = {
+  // Submit questionnaire data and resume file
+  submitQuestionnaire: async (resumeId: string, questionnaireData: any, resumeFile: File | null) => {
+    try {
+      if (!resumeFile) {
+        throw new Error("No resume file provided")
+      }
+
+      // Create FormData object to send both the file and questionnaire data
+      const formData = new FormData()
+
+      // Add the resume file
+      formData.append("resume", resumeFile)
+
+      // Add each field individually to match the API schema
+      formData.append("position", questionnaireData.jobTitle)
+      formData.append("industry", questionnaireData.industry)
+      formData.append("experience_level", mapExperienceLevel(questionnaireData.experienceLevel))
+      formData.append("company_size", questionnaireData.targetCompanySize)
+      formData.append("location", questionnaireData.targetLocation || "")
+      formData.append("application_timeline", mapTimeframe(questionnaireData.timeframe))
+      formData.append("job_description", questionnaireData.specificJobDescription || "")
+
+      console.log("Submitting form data to API:", {
+        position: questionnaireData.jobTitle,
+        industry: questionnaireData.industry,
+        experience_level: mapExperienceLevel(questionnaireData.experienceLevel),
+        company_size: questionnaireData.targetCompanySize,
+        location: questionnaireData.targetLocation || "",
+        application_timeline: mapTimeframe(questionnaireData.timeframe),
+        job_description: questionnaireData.specificJobDescription || "",
+        resume: resumeFile.name,
+      })
+
+      // For FormData, we need to remove the Content-Type header
+      // so the browser can set it with the correct boundary
+      const response = await fetch(getApiUrl("/api/questionnaire/"), {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+        headers: {
+          // Don't set Content-Type here, let the browser handle it
+          "X-CSRFToken": getCsrfToken() || "",
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("API error response:", errorText)
+
+        try {
+          // Try to parse as JSON if possible
+          const errorData = JSON.parse(errorText)
+          throw errorData
+        } catch (e) {
+          // If not JSON, throw the text
+          throw new Error(`API error (${response.status}): ${errorText}`)
+        }
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("Failed to submit questionnaire and file:", error)
+      throw error
+    }
+  },
+}
+
+// Helper functions to map form values to expected schema values
+function mapExperienceLevel(level: string): string {
+  switch (level) {
+    case "entry-level":
+      return "0-2"
+    case "mid-level":
+      return "3-5"
+    case "senior-level":
+      return "6+"
+    default:
+      return "0-2"
+  }
+}
+
+function mapTimeframe(timeframe: string): string {
+  switch (timeframe) {
+    case "immediately":
+      return "immediate"
+    case "1-3 months":
+      return "1-3 months"
+    case "3-6 months":
+      return "3-6 months"
+    case "6+ months":
+      return "6+ months"
+    default:
+      return "immediate"
+  }
 }

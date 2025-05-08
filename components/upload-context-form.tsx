@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { resumeApi } from "@/lib/api"
 import AuthenticationModal from "@/components/authentication-modal"
 import {
   Briefcase,
@@ -26,10 +27,11 @@ import { Progress } from "@/components/ui/progress"
 
 interface UploadContextFormProps {
   resumeId: string
+  resumeFile: File | null
   onComplete: () => void
 }
 
-export default function UploadContextForm({ resumeId, onComplete }: UploadContextFormProps) {
+export default function UploadContextForm({ resumeId, resumeFile, onComplete }: UploadContextFormProps) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const totalSteps = 4
@@ -39,7 +41,7 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
     jobTitle: "",
     industry: "",
     experienceLevel: "mid-level",
-    targetCompanySize: "any",
+    targetCompanySize: "startup", // Changed default to match API schema
     targetLocation: "",
     timeframe: "1-3 months",
     specificJobDescription: "",
@@ -48,6 +50,8 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
 
   const { isAuthenticated } = useAuth()
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const contentRef = useRef<HTMLDivElement | null>(null)
 
@@ -72,7 +76,6 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
   const handleNext = () => {
     if (step < totalSteps) {
       setStep(step + 1)
-      // Remove this line: window.scrollTo(0, 0)
     } else {
       handleSubmit()
     }
@@ -81,21 +84,56 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1)
-      // Remove this line: window.scrollTo(0, 0)
     }
   }
 
-  const handleSubmit = () => {
-    // In a real app, you would send the formData to your backend
-    console.log("Form data submitted:", formData)
+  const handleSubmit = async () => {
+    if (!resumeFile) {
+      setSubmitError("No resume file selected. Please go back and select a file.")
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmitError(null)
 
     // Check if the user is authenticated
     if (isAuthenticated) {
-      // If authenticated, navigate to the analysis page
-      router.push(`/analysis/${resumeId}`)
-      onComplete()
+      try {
+        // Submit both the questionnaire data and the file to the backend
+        await resumeApi.submitQuestionnaire(resumeId, formData, resumeFile)
+        console.log("Questionnaire data and file submitted successfully")
+
+        // Navigate to the analysis page
+        router.push(`/analysis/${resumeId}`)
+        onComplete()
+      } catch (error) {
+        console.error("Error submitting questionnaire data and file:", error)
+
+        // Display a more specific error message if available
+        if (error && typeof error === "object" && error.resume) {
+          // If there's a specific error for the resume field
+          setSubmitError(`Resume error: ${error.resume.join(", ")}`)
+        } else if (error && typeof error === "object") {
+          // Try to extract error messages from the error object
+          const errorMessages = Object.entries(error)
+            .map(([key, value]) => {
+              if (Array.isArray(value)) {
+                return `${key}: ${value.join(", ")}`
+              }
+              return `${key}: ${value}`
+            })
+            .join("; ")
+
+          setSubmitError(errorMessages || "Failed to submit your data. Please try again.")
+        } else {
+          setSubmitError("Failed to submit your data. Please try again.")
+        }
+      } finally {
+        setIsSubmitting(false)
+      }
     } else {
       // If not authenticated, show the authentication modal
+      setIsSubmitting(false)
       setShowAuthModal(true)
     }
   }
@@ -117,6 +155,12 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
         <Progress value={progress} className="h-2 mt-4" />
       </CardHeader>
       <CardContent ref={contentRef}>
+        {submitError && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+            {submitError}
+          </div>
+        )}
+
         {step === 1 && (
           <div className="space-y-6">
             <div className="space-y-4">
@@ -331,8 +375,29 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
         <div className="text-sm text-muted-foreground">
           Step {step} of {totalSteps}
         </div>
-        <Button onClick={handleNext} disabled={!canProceed()} className="w-[100px] bg-teal-500 hover:bg-teal-600">
-          {step === totalSteps ? (
+        <Button
+          onClick={handleNext}
+          disabled={!canProceed() || isSubmitting}
+          className="w-[100px] bg-teal-500 hover:bg-teal-600"
+        >
+          {isSubmitting ? (
+            <span className="flex items-center">
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Submitting
+            </span>
+          ) : step === totalSteps ? (
             <>
               Finish
               <CheckCircle className="ml-2 h-4 w-4" />
@@ -349,9 +414,40 @@ export default function UploadContextForm({ resumeId, onComplete }: UploadContex
       <AuthenticationModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        onSuccess={() => {
-          setShowAuthModal(false)
-          onComplete()
+        onSuccess={async () => {
+          setIsSubmitting(true)
+          try {
+            // Submit the questionnaire data and file after successful authentication
+            await resumeApi.submitQuestionnaire(resumeId, formData, resumeFile)
+            console.log("Questionnaire data and file submitted successfully after authentication")
+            router.push(`/analysis/${resumeId}`)
+            onComplete()
+          } catch (error) {
+            console.error("Error submitting questionnaire data and file after authentication:", error)
+
+            // Display a more specific error message if available
+            if (error && typeof error === "object" && error.resume) {
+              // If there's a specific error for the resume field
+              setSubmitError(`Resume error: ${error.resume.join(", ")}`)
+            } else if (error && typeof error === "object") {
+              // Try to extract error messages from the error object
+              const errorMessages = Object.entries(error)
+                .map(([key, value]) => {
+                  if (Array.isArray(value)) {
+                    return `${key}: ${value.join(", ")}`
+                  }
+                  return `${key}: ${value}`
+                })
+                .join("; ")
+
+              setSubmitError(errorMessages || "Failed to submit your data after authentication. Please try again.")
+            } else {
+              setSubmitError("Failed to submit your data after authentication. Please try again.")
+            }
+          } finally {
+            setIsSubmitting(false)
+            setShowAuthModal(false)
+          }
         }}
         resumeId={resumeId}
       />
