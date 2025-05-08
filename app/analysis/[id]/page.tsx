@@ -8,9 +8,12 @@ import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import BeforeAfterExample from "@/components/before-after-example"
 
-export default function AnalysisPage({ params }: { params: { id: string } }) {
+
+export default async function AnalysisPage({ params }: { params: Promise<{ id: string }> }) {
   // In a real app, you would fetch the analysis data based on the ID
-  const resumeId = params.id
+  const { id } = await params
+  const resumeId = id
+  
 
   return (
     <div className="flex min-h-screen flex-col">
