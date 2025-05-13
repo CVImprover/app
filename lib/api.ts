@@ -234,7 +234,7 @@ export const resumeApi = {
 
       // For FormData, we need to remove the Content-Type header
       // so the browser can set it with the correct boundary
-      const response = await fetch(getApiUrl("/api/questionnaire/"), {
+      const response = await fetch(getApiUrl("/cv/questionnaire/"), {
         method: "POST",
         body: formData,
         credentials: "include",
